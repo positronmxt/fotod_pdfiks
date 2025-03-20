@@ -1,0 +1,7 @@
+opencv-python==4.8.0.76
+numpy==1.24.3
+Pillow==10.0.0
+img2pdf==0.4.4
+pytesseract==0.3.10
+scikit-image==0.21.0
+# python-tk on tavaliselt paigaldatud koos Pythoniga 

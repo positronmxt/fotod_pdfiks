@@ -1,0 +1,37 @@
+# Python virtuaalkeskkonna failid
+venv/
+env/
+ENV/
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ajutised failid ja kataloogid
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.cache
+temp/
+tmp/
+
+# IDE failid
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS-spetsiifilised failid
+.DS_Store
+Thumbs.db
+
+# Logid
+*.log
+
+# Paketid ja distributsioonid
+dist/
+build/
+*.egg-info/ 
