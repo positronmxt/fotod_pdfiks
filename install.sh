@@ -176,24 +176,66 @@ install_python_deps() {
     info "Paigaldan setuptools (vajalik teiste pakettide ehitamiseks)..."
     python3 -m pip install --upgrade setuptools wheel
     
-    # Kontrolli, kas setuptools paigaldati edukalt
-    if ! python3 -c "import setuptools.build_meta" &>/dev/null; then
-        warning "setuptools.build_meta importimine ebaõnnestus. Proovin paketid paigaldada alternatiivse meetodiga."
-        # Paigalda igaüks eraldi
-        for package in $(cat requirements.txt | grep -v "#"); do
-            info "Paigaldan paketi: $package"
-            python3 -m pip install --no-build-isolation $package || warning "Paketi $package paigaldamine ebaõnnestus. Jätkan järgmisega."
-        done
-    else
-        # Kui setuptools on korralikult paigaldatud, jätka tavapäraselt
-        info "Paigaldan pakette requirements.txt failist..."
-        python3 -m pip install -r requirements.txt
-    fi
+    # Kontrolli Python versiooni
+    python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    info "Python versioon: $python_version"
     
-    # Kontrolli, kas streamlit on puudu requirements.txt-st
-    if ! grep -q "streamlit" requirements.txt; then
-        info "Paigaldan Streamlit (veebiliidese jaoks)..."
-        python3 -m pip install streamlit
+    # Python 3.12 ja uuemate versioonide puhul on vaja erisusi
+    if [[ "$python_version" == "3.12" || "$python_version" > "3.12" ]]; then
+        info "Kasutan Python 3.12+ spetsiifilist paigaldusmeetodit..."
+        
+        # Proovi paigaldada numpy esmalt binaarfailidena
+        info "Paigaldan numpy binaarfailina..."
+        python3 -m pip install --only-binary=:all: numpy --no-build-isolation
+        
+        # Paigalda OpenCV
+        info "Paigaldan OpenCV..."
+        python3 -m pip install opencv-python --no-build-isolation
+        
+        # Paigalda ülejäänud paketid nimekirjast
+        info "Paigaldan ülejäänud paketid..."
+        while IFS= read -r package || [[ -n "$package" ]]; do
+            # Jäta vahele kommentaarid ja tühjad read
+            if [[ $package != \#* && -n "$package" ]]; then
+                # Jäta vahele juba paigaldatud paketid (numpy ja opencv)
+                if [[ "$package" != "numpy"* && "$package" != "opencv"* ]]; then
+                    info "Paigaldan: $package"
+                    python3 -m pip install --only-binary=:all: "$package" || {
+                        warning "Ei saanud paigaldada $package ainult binaaridega, proovin uuesti..."
+                        python3 -m pip install "$package" --no-build-isolation || 
+                            warning "Paketi $package paigaldamine ebaõnnestus."
+                    }
+                fi
+            fi
+        done < requirements.txt
+        
+        # Kontrolli, kas streamlit on puudu
+        if ! python3 -c "import streamlit" &>/dev/null; then
+            info "Paigaldan Streamlit (veebiliidese jaoks)..."
+            python3 -m pip install streamlit --no-build-isolation
+        fi
+        
+    # Varasemad Python versioonid kasutavad tavalisemat paigaldusmeetodit
+    else
+        # Kontrolli, kas setuptools paigaldati edukalt
+        if ! python3 -c "import setuptools.build_meta" &>/dev/null; then
+            warning "setuptools.build_meta importimine ebaõnnestus. Proovin paketid paigaldada alternatiivse meetodiga."
+            # Paigalda igaüks eraldi
+            for package in $(cat requirements.txt | grep -v "#"); do
+                info "Paigaldan paketi: $package"
+                python3 -m pip install --no-build-isolation "$package" || warning "Paketi $package paigaldamine ebaõnnestus. Jätkan järgmisega."
+            done
+        else
+            # Kui setuptools on korralikult paigaldatud, jätka tavapäraselt
+            info "Paigaldan pakette requirements.txt failist..."
+            python3 -m pip install -r requirements.txt
+        fi
+        
+        # Kontrolli, kas streamlit on puudu requirements.txt-st
+        if ! grep -q "streamlit" requirements.txt; then
+            info "Paigaldan Streamlit (veebiliidese jaoks)..."
+            python3 -m pip install streamlit
+        fi
     fi
     
     success "Kõik Pythoni sõltuvused paigaldatud."

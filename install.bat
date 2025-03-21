@@ -120,27 +120,52 @@ REM Paigalda setuptools eraldi ja veendu, et see on korralikult installitud
 echo %INFO% Paigaldan setuptools (vajalik teiste pakettide ehitamiseks)...
 python -m pip install --upgrade setuptools wheel
 
-REM Kontrolli, kas setuptools paigaldati edukalt
-python -c "import setuptools.build_meta" >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo %WARNING% setuptools.build_meta importimine ebaõnnestus. Proovin alternatiivseid meetodeid.
+REM Kontrolli Python versiooni
+python -c "import sys; print('Python ' + str(sys.version_info.major) + '.' + str(sys.version_info.minor))"
+FOR /F "tokens=2" %%A IN ('python -c "import sys; print(str(sys.version_info.major) + '.' + str(sys.version_info.minor))"') DO set PYTHON_VERSION=%%A
+echo %INFO% Python versioon: %PYTHON_VERSION%
+
+REM Python 3.12 ja uuemate versioonide puhul on vaja erisusi
+if "%PYTHON_VERSION%" == "3.12" (
+    echo %INFO% Kasutan Python 3.12+ spetsiifilist paigaldusmeetodit...
     
-    REM Loeme requirements.txt faili ja paigaldame paketid ühekaupa
+    REM Proovi paigaldada numpy esmalt binaarfailidena
+    echo %INFO% Paigaldan numpy binaarfailina...
+    python -m pip install --only-binary=:all: numpy --no-build-isolation
+    
+    REM Paigalda OpenCV
+    echo %INFO% Paigaldan OpenCV...
+    python -m pip install opencv-python --no-build-isolation
+    
+    REM Paigalda ülejäänud paketid nimekirjast
+    echo %INFO% Paigaldan ülejäänud paketid...
     for /F "tokens=*" %%A in (requirements.txt) do (
         echo %%A | findstr /v /r "^#" >nul
         if not errorlevel 1 (
-            echo %INFO% Paigaldan paketi: %%A
-            python -m pip install --no-build-isolation %%A
+            echo %%A | findstr /r "numpy opencv" >nul
+            if errorlevel 1 (
+                echo %INFO% Paigaldan: %%A
+                python -m pip install --only-binary=:all: %%A || (
+                    echo %WARNING% Ei saanud paigaldada %%A ainult binaaridega, proovin uuesti...
+                    python -m pip install %%A --no-build-isolation || echo %WARNING% Paketi %%A paigaldamine ebaõnnestus.
+                )
+            )
         )
     )
-) else (
-    REM Kui setuptools on korralikult paigaldatud, jätka tavapäraselt
-    echo %INFO% Paigaldan pakette requirements.txt failist...
-    python -m pip install -r requirements.txt
+    
+    REM Kontrolli, kas streamlit on paigaldatud
+    python -c "import streamlit" >nul 2>&1
     if %ERRORLEVEL% NEQ 0 (
-        echo %ERROR% Pythoni sõltuvuste paigaldamine ebaõnnestus.
-        echo %WARNING% Proovin paigaldada pakette ühekaupa...
+        echo %INFO% Paigaldan Streamlit (veebiliidese jaoks)...
+        python -m pip install streamlit --no-build-isolation
+    )
+) else (
+    REM Kontrolli, kas setuptools paigaldati edukalt
+    python -c "import setuptools.build_meta" >nul 2>&1
+    if %ERRORLEVEL% NEQ 0 (
+        echo %WARNING% setuptools.build_meta importimine ebaõnnestus. Proovin alternatiivseid meetodeid.
         
+        REM Loeme requirements.txt faili ja paigaldame paketid ühekaupa
         for /F "tokens=*" %%A in (requirements.txt) do (
             echo %%A | findstr /v /r "^#" >nul
             if not errorlevel 1 (
@@ -148,14 +173,30 @@ if %ERRORLEVEL% NEQ 0 (
                 python -m pip install --no-build-isolation %%A
             )
         )
+    ) else (
+        REM Kui setuptools on korralikult paigaldatud, jätka tavapäraselt
+        echo %INFO% Paigaldan pakette requirements.txt failist...
+        python -m pip install -r requirements.txt
+        if %ERRORLEVEL% NEQ 0 (
+            echo %ERROR% Pythoni sõltuvuste paigaldamine ebaõnnestus.
+            echo %WARNING% Proovin paigaldada pakette ühekaupa...
+            
+            for /F "tokens=*" %%A in (requirements.txt) do (
+                echo %%A | findstr /v /r "^#" >nul
+                if not errorlevel 1 (
+                    echo %INFO% Paigaldan paketi: %%A
+                    python -m pip install --no-build-isolation %%A
+                )
+            )
+        )
     )
-)
-
-REM Kontrolli, kas streamlit on paigaldatud
-python -c "import streamlit" >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo %INFO% Paigaldan Streamlit (veebiliidese jaoks)...
-    python -m pip install streamlit
+    
+    REM Kontrolli, kas streamlit on paigaldatud
+    python -c "import streamlit" >nul 2>&1
+    if %ERRORLEVEL% NEQ 0 (
+        echo %INFO% Paigaldan Streamlit (veebiliidese jaoks)...
+        python -m pip install streamlit
+    )
 )
 
 echo %SUCCESS% Kõik Pythoni sõltuvused paigaldatud.
