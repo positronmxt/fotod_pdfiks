@@ -171,7 +171,24 @@ setup_virtualenv() {
 install_python_deps() {
     info "Paigaldan Pythoni sõltuvusi..."
     python3 -m pip install --upgrade pip
-    python3 -m pip install -r requirements.txt
+    
+    # Paigalda setuptools eraldi ja veendu, et see on korralikult installitud
+    info "Paigaldan setuptools (vajalik teiste pakettide ehitamiseks)..."
+    python3 -m pip install --upgrade setuptools wheel
+    
+    # Kontrolli, kas setuptools paigaldati edukalt
+    if ! python3 -c "import setuptools.build_meta" &>/dev/null; then
+        warning "setuptools.build_meta importimine ebaõnnestus. Proovin paketid paigaldada alternatiivse meetodiga."
+        # Paigalda igaüks eraldi
+        for package in $(cat requirements.txt | grep -v "#"); do
+            info "Paigaldan paketi: $package"
+            python3 -m pip install --no-build-isolation $package || warning "Paketi $package paigaldamine ebaõnnestus. Jätkan järgmisega."
+        done
+    else
+        # Kui setuptools on korralikult paigaldatud, jätka tavapäraselt
+        info "Paigaldan pakette requirements.txt failist..."
+        python3 -m pip install -r requirements.txt
+    fi
     
     # Kontrolli, kas streamlit on puudu requirements.txt-st
     if ! grep -q "streamlit" requirements.txt; then

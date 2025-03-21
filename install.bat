@@ -115,11 +115,40 @@ echo %SUCCESS% Virtuaalkeskkond aktiveeritud.
 REM Paigalda vajalikud Pythoni sõltuvused
 echo %INFO% Paigaldan Pythoni sõltuvusi...
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+
+REM Paigalda setuptools eraldi ja veendu, et see on korralikult installitud
+echo %INFO% Paigaldan setuptools (vajalik teiste pakettide ehitamiseks)...
+python -m pip install --upgrade setuptools wheel
+
+REM Kontrolli, kas setuptools paigaldati edukalt
+python -c "import setuptools.build_meta" >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo %ERROR% Pythoni sõltuvuste paigaldamine ebaõnnestus.
-    pause
-    exit /b 1
+    echo %WARNING% setuptools.build_meta importimine ebaõnnestus. Proovin alternatiivseid meetodeid.
+    
+    REM Loeme requirements.txt faili ja paigaldame paketid ühekaupa
+    for /F "tokens=*" %%A in (requirements.txt) do (
+        echo %%A | findstr /v /r "^#" >nul
+        if not errorlevel 1 (
+            echo %INFO% Paigaldan paketi: %%A
+            python -m pip install --no-build-isolation %%A
+        )
+    )
+) else (
+    REM Kui setuptools on korralikult paigaldatud, jätka tavapäraselt
+    echo %INFO% Paigaldan pakette requirements.txt failist...
+    python -m pip install -r requirements.txt
+    if %ERRORLEVEL% NEQ 0 (
+        echo %ERROR% Pythoni sõltuvuste paigaldamine ebaõnnestus.
+        echo %WARNING% Proovin paigaldada pakette ühekaupa...
+        
+        for /F "tokens=*" %%A in (requirements.txt) do (
+            echo %%A | findstr /v /r "^#" >nul
+            if not errorlevel 1 (
+                echo %INFO% Paigaldan paketi: %%A
+                python -m pip install --no-build-isolation %%A
+            )
+        )
+    )
 )
 
 REM Kontrolli, kas streamlit on paigaldatud
