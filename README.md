@@ -14,6 +14,26 @@ Tööriist telefonis pildistatud dokumentide konverteerimiseks kompaktseteks PDF
 
 ## Paigaldamine
 
+### Automaatne paigaldamine (soovitatud)
+
+```bash
+# Linux/macOS:
+chmod +x install.sh  # Tee skript käivitatavaks (kui pole juba)
+./install.sh
+
+# Windows:
+# Topeltklikk failil install.bat
+```
+
+Automaatne installeerimine:
+- Kontrollib ja paigaldab vajalikud sõltuvused
+- Seadistab Python virtuaalkeskkonna
+- Paigaldab kõik vajalikud Pythoni paketid
+- Testib paigaldust, et kindlustada korrektne töö
+- Loob lihtsad käivitamise skriptid igapäevaseks kasutamiseks
+
+### Käsitsi paigaldamine
+
 ```bash
 # Klooni repo
 git clone https://github.com/username/fotod_pdfiks.git

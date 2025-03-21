@@ -4,4 +4,6 @@ Pillow==10.0.0
 img2pdf==0.4.4
 pytesseract==0.3.10
 scikit-image==0.21.0
+streamlit==1.33.0
+rembg==2.0.49
 # python-tk on tavaliselt paigaldatud koos Pythoniga 
