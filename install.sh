@@ -95,6 +95,18 @@ check_tesseract() {
     fi
 }
 
+# Kontrolli, kas Poppler-utils on paigaldatud (vajalik pdf2image jaoks)
+check_poppler() {
+    info "Kontrollin Poppler-utils olemasolu (vajalik PDF töötlemiseks)..."
+    if command -v pdftoppm &>/dev/null; then
+        poppler_version=$(pdftoppm -v 2>&1 | head -n 1 | awk '{print $3}')
+        success "Poppler-utils $poppler_version leitud."
+    else
+        warning "Poppler-utils pole paigaldatud. Proovime selle paigaldada..."
+        install_poppler
+    fi
+}
+
 # Paigalda Tesseract, kui see puudub
 install_tesseract() {
     info "Paigaldan Tesseract OCR..."
@@ -126,6 +138,32 @@ install_tesseract() {
         success "Tesseract OCR paigaldatud."
     else
         error "Tesseract OCR paigaldamine ebaõnnestus."
+    fi
+}
+
+# Paigalda Poppler-utils, kui see puudub
+install_poppler() {
+    info "Paigaldan Poppler-utils..."
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y poppler-utils
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y poppler-utils
+    elif command -v zypper &>/dev/null; then
+        sudo zypper install -y poppler-tools
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm poppler
+    elif command -v brew &>/dev/null; then
+        brew install poppler
+    else
+        warning "Ei suutnud Poppler-utils automaatselt paigaldada. PDF-failide töötlemine võib olla piiratud."
+        warning "Palun paigalda Poppler-utils käsitsi oma süsteemi jaoks."
+    fi
+    
+    if command -v pdftoppm &>/dev/null; then
+        success "Poppler-utils paigaldatud."
+    else
+        warning "Poppler-utils paigaldamine ebaõnnestus. PDF-failide töötlemine võib olla piiratud."
     fi
 }
 
@@ -310,6 +348,7 @@ main() {
     check_python
     check_pip
     check_tesseract
+    check_poppler
     check_tkinter
     check_git
     setup_virtualenv

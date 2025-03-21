@@ -75,6 +75,34 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo %SUCCESS% Tesseract OCR leitud.
 
+REM Kontrolli Poppler-i olemasolu (vajalik pdf2image jaoks)
+echo %INFO% Kontrollin Poppler olemasolu (vajalik PDF töötlemiseks)...
+where pdftoppm >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo %WARNING% Poppler pole paigaldatud või pole keskkonnamuutujates.
+    echo Poppler on vajalik PDF failide töötlemiseks programmis.
+    echo.
+    echo Palun laadi Poppler Windows'i jaoks alla ja paigalda:
+    echo https://github.com/oschwartz10612/poppler-windows/releases
+    echo.
+    echo Pärast paigaldamist:
+    echo 1. Lisa Poppler bin kataloog keskkonna Path muutujasse.
+    echo 2. Käivita see skript uuesti.
+    echo.
+    echo Kui oled Poppler'i paigaldanud, vajuta suvaline klahv...
+    pause
+    
+    REM Kontrolli uuesti
+    where pdftoppm >nul 2>&1
+    if %ERRORLEVEL% NEQ 0 (
+        echo %WARNING% Poppler pole endiselt leitav.
+        echo %WARNING% Jätkame paigaldust, kuid PDF töötlemise funktsioonid ei pruugi töötada.
+        echo %WARNING% Käsitsi paigaldamiseks külasta: https://github.com/oschwartz10612/poppler-windows/releases
+    )
+) else (
+    echo %SUCCESS% Poppler leitud.
+)
+
 REM Kontrolli, kas tkinter on paigaldatud (vabatahtlik)
 echo %INFO% Kontrollin tkinter'i olemasolu (vabatahtlik)...
 python -c "import tkinter" >nul 2>&1
